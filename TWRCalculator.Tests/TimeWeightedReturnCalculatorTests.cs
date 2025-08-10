@@ -1,0 +1,288 @@
+using NUnit.Framework;
+using System.Collections.Generic;
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Linq;
+
+[TestFixture]
+public class TimeWeightedReturnCalculatorTests
+{
+    private ITimeWeightedReturnCalculator _calculator;
+
+    [SetUp]
+    public void Setup()
+    {
+        _calculator = new TimeWeightedReturnCalculator();
+    }
+
+    /// <summary>
+    /// A helper method to parse data from a CSV string.
+    /// </summary>
+    /// <param name="csvData">A string containing CSV data.</param>
+    /// <returns>A SortedDictionary of DateTime to decimal values.</returns>
+    private SortedDictionary<DateTime, decimal> ParseCsvData(string csvData)
+    {
+        var data = new SortedDictionary<DateTime, decimal>();
+        var lines = csvData.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            var parts = line.Split(',');
+            if (parts.Length == 2 && DateTime.TryParse(parts[0], out var date) && decimal.TryParse(parts[1], out var value))
+            {
+                data[date] = value;
+            }
+        }
+        return data;
+    }
+
+    [Test]
+    public void TWR_SimplePositiveReturn_ReturnsCorrectValue()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 31), 110m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(0.10m).Within(0.0001m)); // 10% return
+    }
+
+    [Test]
+    public void TWR_SimpleNegativeReturn_ReturnsCorrectValue()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 31), 90m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(-0.10m).Within(0.0001m)); // -10% return
+    }
+
+    [Test]
+    public void TWR_WithCashFlow_ReturnsCorrectValue()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 15), 105m },
+            { new DateTime(2023, 1, 31), 120m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 15), 10m } // A contribution of 10
+        };
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+        
+        decimal expected = (105m / (100m + 10m)) * (120m / 105m) - 1;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
+    }
+    
+    [Test]
+    public void TWR_AnnualizedReturnTrue_ReturnsAnnualizedValue()
+    {
+        // Arrange: period of 6 months
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 7, 1), 110m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 7, 1);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, true);
+
+        // Assert
+        decimal nonAnnualizedReturn = 0.10m; // 10%
+        double years = (endDate - startDate).TotalDays / 365.25;
+        decimal expectedAnnualized = (decimal)(Math.Pow((double)(1 + nonAnnualizedReturn), 1 / years) - 1);
+        
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(expectedAnnualized).Within(0.0001m));
+    }
+    
+    [Test]
+    public void TWR_AnnualizedReturnFalse_ReturnsNonAnnualizedValue()
+    {
+        // Arrange: period of 6 months
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 7, 1), 110m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 7, 1);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(0.10m).Within(0.0001m));
+    }
+    
+    [Test]
+    public void TWR_ZeroReturn_ReturnsZero()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 31), 100m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(0.0m).Within(0.0001m));
+    }
+    
+    [Test]
+    public void TWR_EmptyNAVSeries_ReturnsNull()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>();
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+    
+    [Test]
+    public void TWR_EvaluationStartAfterEnd_ReturnsNull()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 31), 110m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 31);
+        var endDate = new DateTime(2023, 1, 1);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+    
+    [Test]
+    public void TWR_NAVSeriesWithOnlyOnePoint_ReturnsNull()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+    
+    [Test]
+    public void TWR_WithMultipleSubPeriods_ReturnsCorrectValue()
+    {
+        // Arrange
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>
+        {
+            { new DateTime(2023, 1, 1), 100m },
+            { new DateTime(2023, 1, 15), 105m },
+            { new DateTime(2023, 1, 20), 100m },
+            { new DateTime(2023, 1, 31), 110m }
+        };
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2023, 1, 1);
+        var endDate = new DateTime(2023, 1, 31);
+        
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Expected: (105/100) * (100/105) * (110/100) - 1 = 1.10 - 1 = 0.10
+        decimal expected = (105m / 100m) * (100m / 105m) * (110m / 100m) - 1;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
+    }
+    
+    [Test]
+    public void TWR_ComplexDataFromCsv_ReturnsCorrectValue()
+    {
+        // Arrange: A more complex scenario using data from the provided CSV files.
+        // We will now embed the data directly in the test to ensure consistency.
+        string navCsv = @"2018-01-01,1000
+2018-01-05,1020
+2018-01-10,1015
+2018-01-15,1050";
+
+        string cashFlowCsv = @"2018-01-05,50";
+        
+        var navTimeSeries = ParseCsvData(navCsv);
+        var externalFlows = ParseCsvData(cashFlowCsv);
+        
+        var startDate = new DateTime(2018, 1, 1);
+        var endDate = new DateTime(2018, 1, 15);
+
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Expected calculation:
+        // Period 1 (Jan 1 to Jan 5): (1020 / (1000 + 50)) - 1
+        // Period 2 (Jan 5 to Jan 10): (1015 / 1020) - 1
+        // Period 3 (Jan 10 to Jan 15): (1050 / 1015) - 1
+        // Total TWR = (1 + Period1_Return) * (1 + Period2_Return) * (1 + Period3_Return) - 1
+        decimal expected = (1020m / (1000m + 50m)) * (1015m / 1020m) * (1050m / 1015m) - 1;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
+    }
+}

@@ -1,0 +1,17 @@
+# Visual Studio Code
+.vscode/
+
+# Binaries and object files
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+
+# Visual Studio temporary files
+*.suo
+*.user
+*.log
+*.pdb
+
+# NuGet packages
+packages/
