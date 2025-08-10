@@ -1,7 +1,8 @@
 # Time-Weighted Return (TWR) Calculator
 
 ## Introduction
-This project provides a robust **C#** implementation for calculating the **Time-Weighted Return (TWR)** of an investment portfolio.  
+This project provides a robust **C#** implementation for calculating the **Time-Weighted Return (TWR)** of an investment portfolio. 
+
 The TWR is a standard measure of investment performance that removes the effects of external cash flows (like contributions or withdrawals), making it ideal for evaluating the skill of an investment manager.
 
 The calculator is designed to be resilient, handling scenarios where the start and end dates of the evaluation period do not perfectly align with the dates in the provided Net Asset Value (NAV) series.
@@ -21,19 +22,20 @@ The calculator is designed to be resilient, handling scenarios where the start a
 **Steps:**
 1. Clone the repository:
    ```bash
-   git clone [your-repository-url]
+   git clone https://github.com/binoy-d-shah/TWR_Calculator_Solution.git
    cd TWR_Calculator_Solution
    ```
 
 2. Open the project:  
+   
    Open the `TWR_Calculator_Solution.sln` file in your preferred C# IDE.  
    The solution contains two projects:  
    - **TWRCalculator** (the main library)  
    - **TWRCalculator.Tests** (the unit tests)
 
 3. Restore dependencies:  
-   The project uses the NUnit test framework.  
-   Your IDE should automatically restore these dependencies when you open the solution.  
+   
+   The project uses the NUnit test framework. Your IDE should automatically restore these dependencies when you open the solution.  
    If not, run:
    ```bash
    dotnet restore
@@ -94,5 +96,6 @@ dotnet test
 This will build the test project and run all tests.
 
 **From Visual Studio:**
+
 Use the **Test Explorer** to discover and run tests.  
 Right-click on the test project or individual test methods and select **Run Tests**.
