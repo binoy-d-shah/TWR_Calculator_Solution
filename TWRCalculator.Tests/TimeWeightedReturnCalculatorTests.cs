@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Diagnostics;
 
 [TestFixture]
 public class TimeWeightedReturnCalculatorTests
@@ -326,5 +327,44 @@ public class TimeWeightedReturnCalculatorTests
 
         // Assert
         Assert.That(Math.Round(result ?? 0m, 4), Is.EqualTo(-35.2173m).Within(0.0001m));
+    }
+
+    [Test]
+    public void TWR_PerformanceTest_LargeSyntheticData_IsFast()
+    {
+        // Arrange
+        // Create a large, synthetic data set to test performance.
+        var navTimeSeries = new SortedDictionary<DateTime, decimal>();
+        var externalFlows = new SortedDictionary<DateTime, decimal>();
+        var startDate = new DateTime(2000, 1, 1);
+        var endDate = new DateTime(2025, 1, 1);
+        decimal currentNav = 100m;
+        
+        // Generate daily data for a 25-year period.
+        for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
+        {
+            // Add a small random fluctuation to the NAV.
+            currentNav += (decimal)(new Random().NextDouble() * 2 - 1);
+            navTimeSeries.Add(date, currentNav);
+            
+            // Add a cash flow on a specific interval (e.g., every 90 days).
+            if (date.DayOfYear % 90 == 0)
+            {
+                externalFlows.Add(date, 5m);
+            }
+        }
+        
+        var stopwatch = new Stopwatch();
+        
+        // Act
+        stopwatch.Start();
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+        stopwatch.Stop();
+        
+        // Assert
+        // Check that the result is valid and that the calculation took less than a specific time.
+        // The time limit (e.g., 500ms) will depend on the expected performance of the system.
+        Assert.That(result, Is.Not.Null);
+        Assert.That(stopwatch.ElapsedMilliseconds, Is.LessThan(500));
     }
 }
