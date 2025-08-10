@@ -48,7 +48,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
@@ -69,7 +69,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
@@ -94,17 +94,17 @@ public class TimeWeightedReturnCalculatorTests
         };
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
-        
+
         decimal expected = (105m / (100m + 10m)) * (120m / 105m) - 1;
 
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
     }
-    
+
     [Test]
     public void TWR_AnnualizedReturnTrue_ReturnsAnnualizedValue()
     {
@@ -117,7 +117,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 7, 1);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, true);
 
@@ -125,11 +125,11 @@ public class TimeWeightedReturnCalculatorTests
         decimal nonAnnualizedReturn = 0.10m; // 10%
         double years = (endDate - startDate).TotalDays / 365.25;
         decimal expectedAnnualized = (decimal)(Math.Pow((double)(1 + nonAnnualizedReturn), 1 / years) - 1);
-        
+
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(expectedAnnualized).Within(0.0001m));
     }
-    
+
     [Test]
     public void TWR_AnnualizedReturnFalse_ReturnsNonAnnualizedValue()
     {
@@ -142,7 +142,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 7, 1);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
@@ -150,7 +150,7 @@ public class TimeWeightedReturnCalculatorTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(0.10m).Within(0.0001m));
     }
-    
+
     [Test]
     public void TWR_ZeroReturn_ReturnsZero()
     {
@@ -163,7 +163,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
@@ -171,7 +171,7 @@ public class TimeWeightedReturnCalculatorTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(0.0m).Within(0.0001m));
     }
-    
+
     [Test]
     public void TWR_EmptyNAVSeries_ReturnsNull()
     {
@@ -180,14 +180,14 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
         // Assert
         Assert.That(result, Is.Null);
     }
-    
+
     [Test]
     public void TWR_EvaluationStartAfterEnd_ReturnsNull()
     {
@@ -200,14 +200,14 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 31);
         var endDate = new DateTime(2023, 1, 1);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
         // Assert
         Assert.That(result, Is.Null);
     }
-    
+
     [Test]
     public void TWR_NAVSeriesWithOnlyOnePoint_ReturnsNull()
     {
@@ -219,14 +219,14 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
         // Assert
         Assert.That(result, Is.Null);
     }
-    
+
     [Test]
     public void TWR_WithMultipleSubPeriods_ReturnsCorrectValue()
     {
@@ -241,7 +241,7 @@ public class TimeWeightedReturnCalculatorTests
         var externalFlows = new SortedDictionary<DateTime, decimal>();
         var startDate = new DateTime(2023, 1, 1);
         var endDate = new DateTime(2023, 1, 31);
-        
+
         // Act
         var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
 
@@ -252,7 +252,7 @@ public class TimeWeightedReturnCalculatorTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
     }
-    
+
     [Test]
     public void TWR_ComplexDataFromCsv_ReturnsCorrectValue()
     {
@@ -264,10 +264,10 @@ public class TimeWeightedReturnCalculatorTests
 2018-01-15,1050";
 
         string cashFlowCsv = @"2018-01-05,50";
-        
+
         var navTimeSeries = ParseCsvData(navCsv);
         var externalFlows = ParseCsvData(cashFlowCsv);
-        
+
         var startDate = new DateTime(2018, 1, 1);
         var endDate = new DateTime(2018, 1, 15);
 
