@@ -36,6 +36,28 @@ public class TimeWeightedReturnCalculatorTests
         return data;
     }
 
+    /// <summary>
+    /// A helper method to parse data from a CSV string.
+    /// </summary>
+    /// <param name="csvData">A string containing CSV data.</param>
+    /// <returns>A SortedDictionary of DateTime to decimal values.</returns>
+    private SortedDictionary<DateTime, decimal> ReadCsvData(string filePath)
+    {
+        var data = new SortedDictionary<DateTime, decimal>();
+        var lines = File.ReadAllLines(filePath);
+        // Skip the header row
+        foreach (var line in lines.Skip(1))
+        {
+            // Use semicolon as a delimiter
+            var parts = line.Split(';');
+            if (parts.Length == 2 && DateTime.TryParse(parts[0], out var date) && decimal.TryParse(parts[1], out var value))
+            {
+                data[date] = value;
+            }
+        }
+        return data;
+    }
+
     [Test]
     public void TWR_SimplePositiveReturn_ReturnsCorrectValue()
     {
@@ -284,5 +306,25 @@ public class TimeWeightedReturnCalculatorTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.EqualTo(expected).Within(0.0001m));
+    }
+
+    [Test]
+    public void TWR_ComplexDataFromCsvFile_ReturnsCorrectValue()
+    {
+        // Arrange: Dynamically determine the start and end dates from the CSV data.
+        var navTimeSeries = ReadCsvData("TestData/NAVTimeSeries.csv");
+        var externalFlows = ReadCsvData("TestData/CashflowTimeSeries.csv");
+
+        var minDate = new[] { navTimeSeries.Keys.Min(), externalFlows.Keys.Min() }.Min();
+        var maxDate = new[] { navTimeSeries.Keys.Max(), externalFlows.Keys.Max() }.Max();
+
+        var startDate = minDate;
+        var endDate = maxDate;
+
+        // Act
+        var result = _calculator.CalculateTimeWeightedReturn(externalFlows, navTimeSeries, startDate, endDate, false);
+
+        // Assert
+        Assert.That(Math.Round(result ?? 0m, 4), Is.EqualTo(-35.2173m).Within(0.0001m));
     }
 }
